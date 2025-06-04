@@ -306,7 +306,8 @@ map.on("pm:create", async function (e) {
 
   try {
 
-    const rutaCreada = await crearRutaDRF(simonRutaNombre, sentidoTexto);
+    const nombreRuta = `${simonRutaNombre} (${sentidoTexto})`
+    const rutaCreada = await crearRutaDRF(nombreRuta, sentidoTexto);
     const idRutaPumaCreada = rutaCreada.id_ruta_puma;
 
     // Recuperar todos los vértices de la polilínea (array de LatLngs)
