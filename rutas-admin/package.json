@@ -12,6 +12,7 @@
   "dependencies": {
     "@geoman-io/leaflet-geoman-free": "^2.18.3",
     "express": "^5.1.0",
-    "leaflet": "^1.9.4"
+    "leaflet": "^1.9.4",
+    "rutas-admin": "file:"
   }
 }
