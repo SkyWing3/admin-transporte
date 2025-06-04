@@ -90,13 +90,17 @@ async function fetchRutasSimon() {
  *    - Cada marcador es editable (arrastrable) con Geoman.
  *    - Se asigna un popup con el nombre y orden.
  */
+// ——————————————————————————————————————————————
+
+// ——————————————————————————————————————————————
+//  C) FUNCIONES PARA GET SIMON
+// ——————————————————————————————————————————————
+
 async function fetchParadasSimon(rutaId, sentido) {
-  // Validaciones
   if (!rutaId || (sentido !== 1 && sentido !== 2)) {
     simonStopsGroup.clearLayers();
     return;
   }
-
   simonStopsGroup.clearLayers();
 
   try {
@@ -111,13 +115,11 @@ async function fetchParadasSimon(rutaId, sentido) {
       throw new Error(`SIMON paradas HTTP ${response.status} – ${text}`);
     }
     const paradas = await response.json();
-
     if (!Array.isArray(paradas) || paradas.length === 0) {
       alert("SIMON: No se encontraron paradas para esa ruta/sentido.");
       return;
     }
 
-    // Pintar marcadores en el mapa
     paradas.forEach((p) => {
       const latP = parseFloat(p.latitud);
       const lngP = parseFloat(p.longitud);
@@ -130,11 +132,15 @@ async function fetchParadasSimon(rutaId, sentido) {
         .bindPopup(`<strong>${nombre}</strong><br/>Orden: ${orden}`)
         .addTo(simonStopsGroup);
 
-      // Hacer que se pueda arrastrar/editar
+      // Guardamos todo el objeto “p” dentro del marcador para recuperarlo luego
+      marker.paradaData = p;
+
+      // Hacer que el marcador sea editable/arrastrable (Geoman)
       marker.pm.enable({ draggable: true });
+
     });
 
-    // Ajustar zoom/centro
+    // Ajustar zoom/centro tal como antes
     const bounds = simonStopsGroup.getBounds();
     if (bounds.isValid()) {
       map.fitBounds(bounds.pad(0.2));
@@ -144,7 +150,6 @@ async function fetchParadasSimon(rutaId, sentido) {
     alert("No se pudo cargar las paradas desde SIMON.");
   }
 }
-
 // Cuando el usuario pulse el botón “Mostrar Paradas SIMON”
 btnRefrescarParadas.addEventListener("click", () => {
   const rutaId = parseInt(rutasSelect.value, 10);
@@ -154,7 +159,6 @@ btnRefrescarParadas.addEventListener("click", () => {
 
 // Al cargar la página, obtenemos la lista de rutas SIMON
 fetchRutasSimon();
-
 // ——————————————————————————————————————————————
 //  D) FUNCIONES PARA POST Django-DRF
 //     (///rutas/, ///paradas/, ///coordenadas/, ///parada-ruta/)
@@ -301,57 +305,83 @@ map.on("pm:create", async function (e) {
   const sentidoTexto = sentidoNum === 1 ? "IDA" : "VUELTA";
 
   try {
-    // 2) Primero, creamos la ruta en DRF
-    //    Aquí usamos el nombre tal como aparece en SIMON, y el texto "IDA"/"VUELTA".
+
     const rutaCreada = await crearRutaDRF(simonRutaNombre, sentidoTexto);
-    // Por convención, DRF responderá con algo así:
-    // { id_ruta_puma: 123, nombre: "...", sentido: "...", estado: true }
     const idRutaPumaCreada = rutaCreada.id_ruta_puma;
 
-    // 3) Recuperar todos los vértices de la polilínea (array de LatLngs)
-    const latlngs = layer.getLatLngs(); // → [ {lat:..,lng:..}, {lat:..,lng:..}, … ]
+    // Recuperar todos los vértices de la polilínea (array de LatLngs)
+    const latlngs = layer.getLatLngs();
 
     let ordenParada = 1;
-    for (let i = 0; i < latlngs.length; i++) {
+    for (let i = 0; i < latlngs.length; i++)
+    {
       const { lat: latP, lng: lngP } = latlngs[i];
+      const puntoDibujado = L.latLng(latP, lngP);
+
+      const umbralMetros = 3;
 
       // 3.1) Primero comprobar si ya existe esta Coordenada en DRF
-      let coordExistente = await obtenerCoordenadaSiExisteDRF(latP, lngP);
-      if (!coordExistente) {
-        coordExistente = await crearCoordenadaDRF(latP, lngP);
-      }
-      // coordExistente ≈ { id_coordenada: 42, latitud: latP, longitud: lngP }
-      const idCoordenadaUsada = coordExistente.id_coordenada;
+      let coordExistente = await crearCoordenadaDRF(latP, lngP);
 
+      for (const marker of simonStopsGroup.getLayers()) 
+      {
+        const paradaLatLng = marker.getLatLng();
+        const distancia = paradaLatLng.distanceTo(puntoDibujado); // en metros
+
+        if (distancia <= umbralMetros)
+        {
+          const idCoordenadaUsada = coordExistente.id_coordenada;
+          const paradaObj = marker.paradaData;
+          /*const yaAgregada = paradasTocadas.some(
+            (p) => p.pro_geofence_id === paradaObj.pro_geofence_id
+          );*/
+
+          const paradaCreada = await crearParadaDRF(latP, lngP, paradaObj.name_parada, paradaObj.name_parada);
+          const idParadaCreada = paradaCreada.id_parada;
+
+          //console.log("Se encontro una parada: ", paradaObj);
+
+          await crearParadaRutaDRF(idRutaPumaCreada, idParadaCreada, ordenParada, 0, idCoordenadaUsada);
+
+          ordenParada += 1;
+          //if (!yaAgregada) {
+            //const idCoordenadaUsada = coordExistente.id_coordenada;
+            /*paradasTocadas.push(paradaObj);
+            console.log("tocaste una parada", paradaObj);*/
+            /*const defaultNombre = `Parada ${ordenParada}`;
+            const nombreParada = window.prompt(
+              `Ingresa nombre para la Parada #${ordenParada} (lat ${latP.toFixed(6)}, lng ${lngP.toFixed(6)}):`,
+              defaultNombre
+            );
+            if (!nombreParada) {
+              alert("Nombre vacío. Se omite esta parada.");
+              continue; // saltar sin crear Parada ni ParadaRuta
+            }
+            const defaultDireccion = `Dirección Parada ${ordenParada}`;
+            const direccionParada = window.prompt(
+              `Ingresa la dirección física para Parada "${nombreParada}":`,
+              defaultDireccion
+            );
+            if (direccionParada === null) {
+              alert("Dirección vacía. Se omitirá esta parada.");
+              continue;
+            }
+          
+            // 3.3) Crear la Parada en DRF
+            const paradaCreada = await crearParadaDRF(latP, lngP, nombreParada, direccionParada);
+            // { id_parada: 88, latitud:…, longitud:…, nombre:…, direccion:…, estado: true }
+            const idParadaCreada = paradaCreada.id_parada;
+          
+            // 3.4) Ahora creamos ParadaRuta para vincular ruta + parada + coordenada
+            await crearParadaRutaDRF(idRutaPumaCreada, idParadaCreada, ordenParada, 0, idCoordenadaUsada);
+            ordenParada += 1;*/
+            
+          //}
+        }
+      }
       // 3.2) Pedir al usuario nombre y dirección para esta parada
       //     (puedes sustituirlo por tu propio modal o formularios en la UI)
-      const defaultNombre = `Parada ${ordenParada}`;
-      const nombreParada = window.prompt(
-        `Ingresa nombre para la Parada #${ordenParada} (lat ${latP.toFixed(6)}, lng ${lngP.toFixed(6)}):`,
-        defaultNombre
-      );
-      if (!nombreParada) {
-        alert("Nombre vacío. Se omite esta parada.");
-        continue; // saltar sin crear Parada ni ParadaRuta
-      }
-      const defaultDireccion = `Dirección Parada ${ordenParada}`;
-      const direccionParada = window.prompt(
-        `Ingresa la dirección física para Parada "${nombreParada}":`,
-        defaultDireccion
-      );
-      if (direccionParada === null) {
-        alert("Dirección vacía. Se omitirá esta parada.");
-        continue;
-      }
-
-      // 3.3) Crear la Parada en DRF
-      const paradaCreada = await crearParadaDRF(latP, lngP, nombreParada, direccionParada);
-      // { id_parada: 88, latitud:…, longitud:…, nombre:…, direccion:…, estado: true }
-      const idParadaCreada = paradaCreada.id_parada;
-
-      // 3.4) Ahora creamos ParadaRuta para vincular ruta + parada + coordenada
-      await crearParadaRutaDRF(idRutaPumaCreada, idParadaCreada, ordenParada, 0, idCoordenadaUsada);
-      ordenParada += 1;
+    
     }
 
     alert("✅ Se creó ruta + paradas + coordenadas + paradaruta en tu API DRF.");
@@ -368,7 +398,31 @@ map.on("pm:create", async function (e) {
 //  F) OPCIONALES: si quieres permitir editar la polilínea luego:
 //     (ej. disparar un PUT/PATCH en vez de crear todo de nuevo)
 // ——————————————————————————————————————————————
+/*map.on("pm:drawstart", ({ workingLayer }) => {
+  workingLayer.on("pm:vertexadded", (e) => {
+    const { lat, lng } = e.latlng;
+    const puntoDibujado = L.latLng(lat, lng);
 
+    // Distancia máxima en metros para considerar “muy cercano”
+    const umbralMetros = 3;
+
+    simonStopsGroup.eachLayer((marker) => {
+      const paradaLatLng = marker.getLatLng();
+      const distancia = paradaLatLng.distanceTo(puntoDibujado); // en metros
+
+      if (distancia <= umbralMetros) {
+        const paradaObj = marker.paradaData;
+        const yaAgregada = paradasTocadas.some(
+          (p) => p.pro_geofence_id === paradaObj.pro_geofence_id
+        );
+        if (!yaAgregada) {
+          paradasTocadas.push(paradaObj);
+          console.log("tocaste una parada", paradaObj);
+        }
+      }
+    });
+  });
+});*/
 map.on("pm:edit", (e) => {
   if (e.shape === "Poly") {
     console.log("La polilínea fue editada. Aquí podrías actualizar la BD si quisieras.");
