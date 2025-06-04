@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Leaflet-Geoman con Node.js y Paradas</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="/leaflet/leaflet.css" />
+    <!-- Leaflet-Geoman CSS -->
+    <link rel="stylesheet" href="/geoman/leaflet-geoman.css" />
+    <!-- Tu propio CSS -->
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+
+  <body>
+    <!-- CONTROLES: selección de ruta y sentido -->
+    <div id="controls">
+      <select id="rutas-select">
+        <option value="">-- Seleccione ruta --</option>
+      </select>
+      <select id="sentido-select">
+        <option value="1">Sentido Ida (1)</option>
+        <option value="2">Sentido Vuelta (2)</option>
+      </select>
+    </div>
+
+    <!-- MAPA -->
+    <div id="map"></div>
+
+    <!-- Leaflet JS -->
+    <script src="/leaflet/leaflet.js"></script>
+    <!-- Leaflet-Geoman JS -->
+    <script src="/geoman/leaflet-geoman.min.js"></script>
+    <!-- Tu propio JS -->
+    <script src="/script.js"></script>
+  </body>
+</html>

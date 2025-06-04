@@ -1,0 +1,44 @@
+/* Reset básico */
+*,
+:after,
+:before {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html {
+  height: 100%;
+}
+
+body,
+html,
+#map {
+  width: 100%;
+  height: 100%;
+}
+
+/* CONTROLES sobre el mapa */
+#controls {
+  position: absolute;
+  top: 10px;
+  left: 50px;
+  z-index: 1000; /* por encima del mapa */
+  background: white;
+  padding: 8px;
+  border-radius: 4px;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.25);
+}
+
+#controls select {
+  margin-right: 6px;
+}
+
+/* Fondo del body (se ve solo fuera del mapa) */
+body {
+  position: relative;
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: #f1f1f1;
+}
