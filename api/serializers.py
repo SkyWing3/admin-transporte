@@ -21,10 +21,9 @@ class ParadaRutaSerializer(serializers.ModelSerializer):
         fields = ['ruta', 'parada', 'orden', 'tiempo', 'id_coordenada']
 
 class RutaSerializer(serializers.ModelSerializer):
-    paradas = ParadaSerializer(many=True, read_only=True)
     class Meta:
         model = Ruta
-        fields = ['id_ruta_puma', 'nombre', 'sentido', 'estado', 'paradas']
+        fields = '__all__'
 
 class DiaSerializer(serializers.ModelSerializer):
     class Meta:

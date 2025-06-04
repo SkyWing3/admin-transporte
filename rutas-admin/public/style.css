@@ -18,27 +18,27 @@ html,
   height: 100%;
 }
 
-/* CONTROLES sobre el mapa */
+/* Controles (desplegables y botón) encima del mapa */
 #controls {
   position: absolute;
   top: 10px;
   left: 50px;
-  z-index: 1000; /* por encima del mapa */
+  z-index: 1000;
   background: white;
   padding: 8px;
   border-radius: 4px;
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
 }
 
-#controls select {
-  margin-right: 6px;
+#controls select,
+#controls button {
+  margin-right: 8px;
+  font-size: 0.9em;
+  padding: 4px 6px;
 }
 
-/* Fondo del body (se ve solo fuera del mapa) */
 body {
-  position: relative;
-  min-height: 100%;
-  margin: 0;
-  padding: 0;
   background-color: #f1f1f1;
 }

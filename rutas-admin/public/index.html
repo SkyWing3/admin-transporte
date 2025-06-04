@@ -3,29 +3,36 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Leaflet-Geoman con Node.js y Paradas</title>
+    <title>Leaflet-Geoman + SIMON (GET) + Django-DRF (POST)</title>
 
-    <!-- Leaflet CSS -->
+    <!-- Leaflet CSS desde node_modules -->
     <link rel="stylesheet" href="/leaflet/leaflet.css" />
-    <!-- Leaflet-Geoman CSS -->
+    <!-- Leaflet-Geoman CSS desde node_modules -->
     <link rel="stylesheet" href="/geoman/leaflet-geoman.css" />
     <!-- Tu propio CSS -->
     <link rel="stylesheet" href="/style.css" />
   </head>
 
   <body>
-    <!-- CONTROLES: selección de ruta y sentido -->
+    <!-- CONTROLES SUPERIORES -->
     <div id="controls">
+      <!-- 1) SELECT DE RUTAS (GET SIMON) -->
       <select id="rutas-select">
-        <option value="">-- Seleccione ruta --</option>
+        <option value="">-- Cargando rutas... --</option>
       </select>
+
+      <!-- 2) SELECT DE SENTIDO (1 = IDA, 2 = VUELTA) -->
       <select id="sentido-select">
-        <option value="1">Sentido Ida (1)</option>
-        <option value="2">Sentido Vuelta (2)</option>
+        <option value="1">Ida (1)</option>
+        <option value="2">Vuelta (2)</option>
       </select>
+
+      <!-- 3) Botón para “Refrescar paradas” desde SIMON -->
+      <button id="btn-refrescar-paradas">Mostrar Paradas</button>
+      <!-- 4) Indicador para instruir al usuario -->
     </div>
 
-    <!-- MAPA -->
+    <!-- CONTENEDOR DEL MAPA -->
     <div id="map"></div>
 
     <!-- Leaflet JS -->
