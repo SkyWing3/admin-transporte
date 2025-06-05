@@ -1,11 +1,39 @@
-const express = require("express");
-const path = require("path");
+// server.js
+// ----------
+// Servidor Express que expondrá un endpoint real para GET/POST de las paradas
+// y además servirá los archivos estáticos (index.html, style.css, script.js).
+
+const express = require('express');
+const bodyParser = require('body-parser');
+const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
-// 1. Servir archivos estáticos de "public/"
-app.use(express.static(path.join(__dirname, "public")));
+// Middleware para parsear JSON en los cuerpos de POST
+app.use(bodyParser.json());
+
+// Variable en memoria para “guardar” la lista de paradas seleccionadas.
+// Inicialmente vacía.
+let paradasSeleccionadas = [];
+
+// 1) GET /paradas_mock
+//    Devuelve JSON { "parada_id": [ … ] } con la lista actual.
+app.get('/axios/paradas', (req, res) => {
+  return res.json({ parada_id: paradasSeleccionadas });
+});
+
+// 2) POST /paradas_mock
+//    Espera body { "parada_id": [ … ] }. Si es un arreglo, lo guarda y responde.
+app.post('/axios/paradas', (req, res) => {
+  const nuevaLista = req.body.parada_id;
+  if (!Array.isArray(nuevaLista)) {
+    return res
+      .status(400)
+      .json({ error: 'parada_id debe ser un arreglo de enteros' });
+  }
+  paradasSeleccionadas = nuevaLista;
+  return res.json({ parada_id: paradasSeleccionadas });
+});
 
 // 2. Montar la carpeta de Leaflet (node_modules/leaflet/dist) en /leaflet
 app.use(
@@ -34,7 +62,14 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// Iniciar el servidor
+// 3) Servir archivos estáticos (index.html, style.css, script.js, etc.)
+app.use(express.static(path.join(__dirname, "public")));
+
+// 4) Poner a escuchar en el puerto 3000
+const PORT = 3000;
 app.listen(PORT, () => {
-  console.log(`Servidor iniciado en http://localhost:${PORT}`);
+  console.log(`Servidor corriendo en http://localhost:${PORT}`);
 });
+
+
+

@@ -16,7 +16,6 @@ class Parada(models.Model):
     nombre    = models.CharField(max_length=50)
     direccion = models.CharField(max_length=50)
     estado    = models.BooleanField(default=True)
-    #id_parada_puma = models.IntegerField()
 
     def __str__(self):
         return self.nombre

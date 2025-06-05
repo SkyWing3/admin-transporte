@@ -42,3 +42,16 @@ html,
 body {
   background-color: #f1f1f1;
 }
+
+/* Opcional: separación extra para el nuevo select */
+#controls select,
+#controls button {
+  margin-right: 8px;
+  font-size: 0.9em;
+  padding: 4px 6px;
+}
+
+/* Si quisieras que el primer select (fuente-select) esté un poco más separado: */
+#fuente-select {
+  margin-right: 12px;
+}

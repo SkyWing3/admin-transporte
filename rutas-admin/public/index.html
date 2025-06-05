@@ -16,6 +16,12 @@
   <body>
     <!-- CONTROLES SUPERIORES -->
     <div id="controls">
+      <!-- 0) SELECT DE FUENTE DE DATOS -->
+      <select id="data-source-select">
+        <option value="SIMON">SIMON</option>
+        <option value="API">Mi API Django</option>
+      </select>
+
       <!-- 1) SELECT DE RUTAS (GET SIMON) -->
       <select id="rutas-select">
         <option value="">-- Cargando rutas... --</option>
@@ -28,8 +34,10 @@
       </select>
 
       <!-- 3) Botón para “Refrescar paradas” desde SIMON -->
-      <button id="btn-refrescar-paradas">Mostrar Paradas</button>
-      <!-- 4) Indicador para instruir al usuario -->
+      <button id="btn-refrescar-paradas">Mostrar Paradas SIMON</button>
+
+      <!-- 4) Botón para “Enviar paradas seleccionadas” (solo visible en modo API) -->
+      <button id="btn-enviar-paradas" style="display: none;">Enviar paradas</button>
     </div>
 
     <!-- CONTENEDOR DEL MAPA -->
@@ -39,6 +47,8 @@
     <script src="/leaflet/leaflet.js"></script>
     <!-- Leaflet-Geoman JS -->
     <script src="/geoman/leaflet-geoman.min.js"></script>
+    <!-- Axios (para el POST de las paradas seleccionadas) -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <!-- Tu propio JS -->
     <script src="/script.js"></script>
   </body>

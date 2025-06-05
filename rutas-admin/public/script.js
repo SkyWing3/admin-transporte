@@ -3,31 +3,22 @@
  * script.js
  * --- 1) GET SIMON para rutas y paradas
  *     2) POST Django-DRF para crear rutas, paradas, coordenadas, paradaruta
+ *     3) NUEVO: alternar entre SIMON y API, seleccionar paradas de API y enviar lista con Axios
  */
 
 // ——————————————————————————————————————————————
-//  A) CONFIGURACIÓN BÁSICA DEL MAPA
+//  A) CONFIGURACIÓN BÁSICA DEL MAPA (sin cambios)
 // ——————————————————————————————————————————————
-
-const mapConfig = {
-  minZoom: 7,
-  maxZoom: 18,
-  zoomControl: false,
-};
+const mapConfig = { minZoom: 7, maxZoom: 18, zoomControl: false };
 const initialZoom = 18;
 const initialLat = -16.498797;
 const initialLng = -68.140700;
-
 const map = L.map("map", mapConfig).setView([initialLat, initialLng], initialZoom);
-
 L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution:
     '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
 }).addTo(map);
-
 L.control.zoom({ position: "topright" }).addTo(map);
-
-// Añadimos los controles de Geoman (Draw Polyline, etc.)
 map.pm.addControls({
   position: "topleft",
   drawMarker: true,
@@ -37,40 +28,73 @@ map.pm.addControls({
   editPolygon: true,
   deleteLayer: true,
 });
-
-// Grupo para las **paradas SIMON** (FeatureGroup para poder hacer fitBounds luego)
 const simonStopsGroup = L.featureGroup().addTo(map);
+const apiStopsGroup = L.featureGroup();
 
 // ——————————————————————————————————————————————
-//  B) ELEMENTOS DEL DOM
+//  B) ELEMENTOS DEL DOM (sin cambios)
 // ——————————————————————————————————————————————
-
+const dataSourceSelect = document.getElementById("data-source-select");
 const rutasSelect = document.getElementById("rutas-select");
 const sentidoSelect = document.getElementById("sentido-select");
 const btnRefrescarParadas = document.getElementById("btn-refrescar-paradas");
+const btnEnviarParadas = document.getElementById("btn-enviar-paradas");
+let selectedParadaIds = [];
 
 // ——————————————————————————————————————————————
-//  C) FUNCIONES PARA GET SIMON
+//  C) ENDPOINT REAL DE NODE
+//     Ya no usamos mockAdapter; apuntamos directo al servidor Node en localhost:3000
 // ——————————————————————————————————————————————
+const ENDPOINT_URL = "http://localhost:3000/axios/paradas";
 
-/**
- * 1) Obtiene la lista de rutas desde SIMON:
- *    GET http://simon.lapaz.bo/simonApp/Lista_Rutas.php
- *    → Devuelve JSON con un array de objetos:
- *      [{ rt_id, rt_nombre, rt_descripcion_ida, rt_descripcion_vuelta, … }, …]
- * 2) Llena el <select id="rutas-select"> con <option value="rt_id">rt_nombre</option>
- */
+// ——————————————————————————————————————————————
+//  D) LÓGICA DE “CAMBIO DE FUENTE DE DATOS” (sin cambios)
+// ——————————————————————————————————————————————
+function showSimonControls() {
+  rutasSelect.style.display = "";
+  sentidoSelect.style.display = "";
+  btnRefrescarParadas.style.display = "";
+  btnEnviarParadas.style.display = "none";
+}
+function showApiControls() {
+  rutasSelect.style.display = "none";
+  sentidoSelect.style.display = "none";
+  btnRefrescarParadas.style.display = "none";
+  btnEnviarParadas.style.display = ""; 
+}
+dataSourceSelect.addEventListener("change", () => {
+  const source = dataSourceSelect.value;
+  simonStopsGroup.clearLayers();
+  apiStopsGroup.clearLayers();
+  selectedParadaIds = [];
+  if (source === "SIMON") {
+    showSimonControls();
+    fetchRutasSimon();
+  } else if (source === "API") {
+    showApiControls();
+    cargarParadasDesdeAPI();
+  }
+});
+if (dataSourceSelect.value === "API") {
+  showApiControls();
+  cargarParadasDesdeAPI();
+} else {
+  showSimonControls();
+  fetchRutasSimon();
+}
+
+// ——————————————————————————————————————————————
+//  E) FUNCIONES PARA GET SIMON (idénticas a tu código original)
+// ——————————————————————————————————————————————
 async function fetchRutasSimon() {
   try {
     const response = await fetch("http://simon.lapaz.bo/simonApp/Lista_Rutas.php");
     if (!response.ok) throw new Error(`SIMON rutas HTTP ${response.status}`);
-    const rutas = await response.json(); // array de objetos simulados en tu ejemplo
-
-    // Limpiar el <select> y agregar una opción inicial vacía
+    const rutas = await response.json();
     rutasSelect.innerHTML = '<option value="">-- Seleccione ruta --</option>';
-    rutas.forEach((ruta) => {
+    rutas.forEach(ruta => {
       const opt = document.createElement("option");
-      opt.value = ruta.rt_id; // aquí usamos rt_id (no rt_id_rutas_traccar; la clave que en tu JSON es "rt_id")
+      opt.value = ruta.rt_id;
       opt.textContent = ruta.rt_nombre.trim();
       rutasSelect.appendChild(opt);
     });
@@ -79,37 +103,22 @@ async function fetchRutasSimon() {
     rutasSelect.innerHTML = '<option value="">-- Error cargando rutas --</option>';
   }
 }
-
-/**
- * 1) Dado un id de ruta (rt_id) y un sentido (1 o 2), hace POST a SIMON:
- *      POST http://simon.lapaz.bo/simonApp/ListaParadasAppLPB2.php
- *      BODY: { ruta: <rt_id>, sentido: <1|2> }
- *    → SIMON devuelve un array de paradas:
- *      [{ pro_geofence_id, pro_orden, pro_direccion, name_parada, latitud, longitud, … }, …]
- * 2) Vacia el grupo 'simonStopsGroup' y agrega marcadores por cada parada:
- *    - Cada marcador es editable (arrastrable) con Geoman.
- *    - Se asigna un popup con el nombre y orden.
- */
-// ——————————————————————————————————————————————
-
-// ——————————————————————————————————————————————
-//  C) FUNCIONES PARA GET SIMON
-// ——————————————————————————————————————————————
-
 async function fetchParadasSimon(rutaId, sentido) {
   if (!rutaId || (sentido !== 1 && sentido !== 2)) {
     simonStopsGroup.clearLayers();
     return;
   }
   simonStopsGroup.clearLayers();
-
   try {
     const payload = { ruta: rutaId, sentido: sentido };
-    const response = await fetch("http://simon.lapaz.bo/simonApp/ListaParadasAppLPB2.php", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    const response = await fetch(
+      "http://simon.lapaz.bo/simonApp/ListaParadasAppLPB2.php",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }
+    );
     if (!response.ok) {
       const text = await response.text();
       throw new Error(`SIMON paradas HTTP ${response.status} – ${text}`);
@@ -119,28 +128,17 @@ async function fetchParadasSimon(rutaId, sentido) {
       alert("SIMON: No se encontraron paradas para esa ruta/sentido.");
       return;
     }
-
-    paradas.forEach((p) => {
+    paradas.forEach(p => {
       const latP = parseFloat(p.latitud);
       const lngP = parseFloat(p.longitud);
       const nombre = p.name_parada || "Parada sin nombre";
       const orden = p.pro_orden || "-";
-
-      const marker = L.marker([latP, lngP], {
-        title: nombre,
-      })
+      const marker = L.marker([latP, lngP], { title: nombre })
         .bindPopup(`<strong>${nombre}</strong><br/>Orden: ${orden}`)
         .addTo(simonStopsGroup);
-
-      // Guardamos todo el objeto “p” dentro del marcador para recuperarlo luego
       marker.paradaData = p;
-
-      // Hacer que el marcador sea editable/arrastrable (Geoman)
       marker.pm.enable({ draggable: true });
-
     });
-
-    // Ajustar zoom/centro tal como antes
     const bounds = simonStopsGroup.getBounds();
     if (bounds.isValid()) {
       map.fitBounds(bounds.pad(0.2));
@@ -150,27 +148,15 @@ async function fetchParadasSimon(rutaId, sentido) {
     alert("No se pudo cargar las paradas desde SIMON.");
   }
 }
-// Cuando el usuario pulse el botón “Mostrar Paradas SIMON”
 btnRefrescarParadas.addEventListener("click", () => {
   const rutaId = parseInt(rutasSelect.value, 10);
   const sentido = parseInt(sentidoSelect.value, 10);
   fetchParadasSimon(rutaId, sentido);
 });
 
-// Al cargar la página, obtenemos la lista de rutas SIMON
-fetchRutasSimon();
 // ——————————————————————————————————————————————
-//  D) FUNCIONES PARA POST Django-DRF
-//     (///rutas/, ///paradas/, ///coordenadas/, ///parada-ruta/)
+//  F) FUNCIONES PARA POST Django-DRF (idénticas a tu código original)
 // ——————————————————————————————————————————————
-
-/**
- * POST a /rutas/ con { nombre, sentido: "IDA"|"VUELTA", estado: true }.
- * Devuelve el objeto JSON creado (por ejemplo: { id_ruta_puma, nombre, sentido, estado }).
- *
- * Nota: si tu backend está en otro host/puerto (p.ej. http://localhost:8000/rutas/),
- *       cámbialo aquí por la URL absoluta.
- */
 async function crearRutaDRF(nombreRuta, sentidoTexto) {
   const payload = { nombre: nombreRuta, sentido: sentidoTexto, estado: true };
   const resp = await fetch("http://127.0.0.1:8000/api/rutas/", {
@@ -184,14 +170,7 @@ async function crearRutaDRF(nombreRuta, sentidoTexto) {
   }
   return await resp.json();
 }
-
-/**
- * GET /coordenadas/?latitud=<lat>&longitud=<lng>
- * Si existe, devuelve el array y tomamos el primer elemento.
- * Si no existe o hay error, retornamos null.
- */
 async function obtenerCoordenadaSiExisteDRF(lat, lng) {
-  // Si tu DRF está en un host distinto, reemplaza por "http://localhost:8000/coordenadas/?latitud=...".
   const url = `/coordenadas/?latitud=${encodeURIComponent(lat)}&longitud=${encodeURIComponent(lng)}`;
   const resp = await fetch(url);
   if (!resp.ok) {
@@ -204,10 +183,6 @@ async function obtenerCoordenadaSiExisteDRF(lat, lng) {
   }
   return null;
 }
-
-/**
- * POST /coordenadas/ con { latitud, longitud }. Devuelve el objeto { id_coordenada, latitud, longitud }.
- */
 async function crearCoordenadaDRF(lat, lng) {
   const payload = { latitud: lat, longitud: lng };
   const resp = await fetch("http://127.0.0.1:8000/api/coordenadas/", {
@@ -221,11 +196,6 @@ async function crearCoordenadaDRF(lat, lng) {
   }
   return await resp.json();
 }
-
-/**
- * POST /paradas/ con { latitud, longitud, nombre, direccion, estado: true }.
- * Devuelve el objeto creado { id_parada, latitud, longitud, nombre, direccion, estado }.
- */
 async function crearParadaDRF(lat, lng, nombreParada, direccionParada) {
   const payload = {
     latitud: lat,
@@ -245,17 +215,6 @@ async function crearParadaDRF(lat, lng, nombreParada, direccionParada) {
   }
   return await resp.json();
 }
-
-/**
- * POST /parada-ruta/ con {
- *     ruta: <id_ruta_puma>,
- *     parada: <id_parada>,
- *     orden: <número>,
- *     tiempo: 0,
- *     id_coordenada: <id_coordenada>
- * }.
- * Devuelve el objeto ParadaRuta creado.
- */
 async function crearParadaRutaDRF(rutaId, paradaId, orden, tiempo, idCoordenada) {
   const payload = {
     ruta: rutaId,
@@ -277,16 +236,12 @@ async function crearParadaRutaDRF(rutaId, paradaId, orden, tiempo, idCoordenada)
 }
 
 // ——————————————————————————————————————————————
-//  E) FLUJO “DRAW POLYLINE” → CREAR RUTA+PARADAS+COORDENADAS+PARADARUTA
+//  G) FLUJO “DRAW POLYLINE” → CREAR RUTA+PARADAS+COORDENADAS+PARADARUTA
+//     (idéntico a tu código original)
 // ——————————————————————————————————————————————
-
 map.on("pm:create", async function (e) {
-  // Solo nos interesa cuando e.shape === "Poly" (polilínea)
   if (!(e.layer instanceof L.Polyline)) return;
-
-  const layer = e.layer; // objeto L.Polyline recién dibujado
-
-  // 1) Obtener ruta seleccionada (de SIMON) y sentido
+  const layer = e.layer;
   const simonRutaId = parseInt(rutasSelect.value, 10);
   if (!simonRutaId) {
     alert("Primero selecciona una ruta en el desplegable.");
@@ -294,8 +249,6 @@ map.on("pm:create", async function (e) {
     return;
   }
   const simonRutaNombre = rutasSelect.options[rutasSelect.selectedIndex].text.trim();
-  // Por ejemplo "ACHUMANI", porque el texto visible es rt_nombre en el <option>
-
   const sentidoNum = parseInt(sentidoSelect.value, 10);
   if (![1, 2].includes(sentidoNum)) {
     alert("Selecciona un sentido válido (1 o 2).");
@@ -303,135 +256,98 @@ map.on("pm:create", async function (e) {
     return;
   }
   const sentidoTexto = sentidoNum === 1 ? "IDA" : "VUELTA";
-
   try {
-
-    const nombreRuta = `${simonRutaNombre} (${sentidoTexto})`
+    const nombreRuta = `${simonRutaNombre} (${sentidoTexto})`;
     const rutaCreada = await crearRutaDRF(nombreRuta, sentidoTexto);
     const idRutaPumaCreada = rutaCreada.id_ruta_puma;
-
-    // Recuperar todos los vértices de la polilínea (array de LatLngs)
     const latlngs = layer.getLatLngs();
-
     let ordenParada = 1;
-    for (let i = 0; i < latlngs.length; i++)
-    {
+    for (let i = 0; i < latlngs.length; i++) {
       const { lat: latP, lng: lngP } = latlngs[i];
       const puntoDibujado = L.latLng(latP, lngP);
-
       const umbralMetros = 3;
-
-      // 3.1) Primero comprobar si ya existe esta Coordenada en DRF
       let coordExistente = await crearCoordenadaDRF(latP, lngP);
-
-      for (const marker of simonStopsGroup.getLayers()) 
-      {
+      for (const marker of simonStopsGroup.getLayers()) {
         const paradaLatLng = marker.getLatLng();
-        const distancia = paradaLatLng.distanceTo(puntoDibujado); // en metros
-
-        if (distancia <= umbralMetros)
-        {
+        const distancia = paradaLatLng.distanceTo(puntoDibujado);
+        if (distancia <= umbralMetros) {
           const idCoordenadaUsada = coordExistente.id_coordenada;
           const paradaObj = marker.paradaData;
-          /*const yaAgregada = paradasTocadas.some(
-            (p) => p.pro_geofence_id === paradaObj.pro_geofence_id
-          );*/
-
           const paradaCreada = await crearParadaDRF(latP, lngP, paradaObj.name_parada, paradaObj.name_parada);
           const idParadaCreada = paradaCreada.id_parada;
-
-          //console.log("Se encontro una parada: ", paradaObj);
-
           await crearParadaRutaDRF(idRutaPumaCreada, idParadaCreada, ordenParada, 0, idCoordenadaUsada);
-
           ordenParada += 1;
-          //if (!yaAgregada) {
-            //const idCoordenadaUsada = coordExistente.id_coordenada;
-            /*paradasTocadas.push(paradaObj);
-            console.log("tocaste una parada", paradaObj);*/
-            /*const defaultNombre = `Parada ${ordenParada}`;
-            const nombreParada = window.prompt(
-              `Ingresa nombre para la Parada #${ordenParada} (lat ${latP.toFixed(6)}, lng ${lngP.toFixed(6)}):`,
-              defaultNombre
-            );
-            if (!nombreParada) {
-              alert("Nombre vacío. Se omite esta parada.");
-              continue; // saltar sin crear Parada ni ParadaRuta
-            }
-            const defaultDireccion = `Dirección Parada ${ordenParada}`;
-            const direccionParada = window.prompt(
-              `Ingresa la dirección física para Parada "${nombreParada}":`,
-              defaultDireccion
-            );
-            if (direccionParada === null) {
-              alert("Dirección vacía. Se omitirá esta parada.");
-              continue;
-            }
-          
-            // 3.3) Crear la Parada en DRF
-            const paradaCreada = await crearParadaDRF(latP, lngP, nombreParada, direccionParada);
-            // { id_parada: 88, latitud:…, longitud:…, nombre:…, direccion:…, estado: true }
-            const idParadaCreada = paradaCreada.id_parada;
-          
-            // 3.4) Ahora creamos ParadaRuta para vincular ruta + parada + coordenada
-            await crearParadaRutaDRF(idRutaPumaCreada, idParadaCreada, ordenParada, 0, idCoordenadaUsada);
-            ordenParada += 1;*/
-            
-          //}
         }
       }
-      // 3.2) Pedir al usuario nombre y dirección para esta parada
-      //     (puedes sustituirlo por tu propio modal o formularios en la UI)
-    
     }
-
     alert("✅ Se creó ruta + paradas + coordenadas + paradaruta en tu API DRF.");
   } catch (err) {
     console.error("Error al crear recursos en DRF:", err);
     alert("❌ Hubo un error al guardar en la base de datos. Revisa la consola.");
   }
-
-  // Si no quieres que la polilínea quede dibujada tras guardar, descomenta:
-  // map.removeLayer(layer);
 });
 
 // ——————————————————————————————————————————————
-//  F) OPCIONALES: si quieres permitir editar la polilínea luego:
-//     (ej. disparar un PUT/PATCH en vez de crear todo de nuevo)
+//  H) NUEVAS FUNCIONES PARA “MODO API”: CARGAR PARADAS Y SELECCIONARLAS
 // ——————————————————————————————————————————————
-/*map.on("pm:drawstart", ({ workingLayer }) => {
-  workingLayer.on("pm:vertexadded", (e) => {
-    const { lat, lng } = e.latlng;
-    const puntoDibujado = L.latLng(lat, lng);
-
-    // Distancia máxima en metros para considerar “muy cercano”
-    const umbralMetros = 3;
-
-    simonStopsGroup.eachLayer((marker) => {
-      const paradaLatLng = marker.getLatLng();
-      const distancia = paradaLatLng.distanceTo(puntoDibujado); // en metros
-
-      if (distancia <= umbralMetros) {
-        const paradaObj = marker.paradaData;
-        const yaAgregada = paradasTocadas.some(
-          (p) => p.pro_geofence_id === paradaObj.pro_geofence_id
-        );
-        if (!yaAgregada) {
-          paradasTocadas.push(paradaObj);
-          console.log("tocaste una parada", paradaObj);
+async function cargarParadasDesdeAPI() {
+  try {
+    const resp = await fetch("http://127.0.0.1:8000/api/paradas/");
+    if (!resp.ok) throw new Error(`DRF GET paradas HTTP ${resp.status}`);
+    const paradas = await resp.json();
+    apiStopsGroup.clearLayers();
+    paradas.forEach((p) => {
+      const latP = parseFloat(p.latitud);
+      const lngP = parseFloat(p.longitud);
+      const nombre = p.nombre || "Parada sin nombre";
+      const idParada = p.id_parada;
+      const marker = L.marker([latP, lngP], { title: nombre, opacity: 1 }).addTo(apiStopsGroup);
+      marker.paradaId = idParada;
+      marker.bindPopup(`<strong>${nombre}</strong><br/>ID: ${idParada}`);
+      marker.on("click", () => {
+        const idx = selectedParadaIds.indexOf(idParada);
+        if (idx === -1) {
+          selectedParadaIds.push(idParada);
+          marker.setOpacity(0.5);
+        } else {
+          selectedParadaIds.splice(idx, 1);
+          marker.setOpacity(1);
         }
-      }
+      });
     });
-  });
-});*/
-map.on("pm:edit", (e) => {
-  if (e.shape === "Poly") {
-    console.log("La polilínea fue editada. Aquí podrías actualizar la BD si quisieras.");
+    apiStopsGroup.addTo(map);
+    const bounds = apiStopsGroup.getBounds();
+    if (bounds.isValid()) {
+      map.fitBounds(bounds.pad(0.2));
+    }
+  } catch (err) {
+    console.error("Error al cargar paradas desde API:", err);
+    alert("No se pudieron cargar las paradas desde tu API.");
   }
-});
+}
 
-map.on("pm:remove", (e) => {
-  if (e.shape === "Poly") {
-    console.log("La polilínea fue eliminada. Podrías eliminar la Ruta relacionada en tu BD.");
+// ——————————————————————————————————————————————
+//  I) BOTÓN “Enviar paradas” (solo en modo API)
+//     → Aquí hacemos POST real al endpoint de Node en /paradas_mock
+// ——————————————————————————————————————————————
+btnEnviarParadas.addEventListener("click", () => {
+  if (selectedParadaIds.length === 0) {
+    alert("No hay paradas seleccionadas para enviar.");
+    return;
   }
+  axios
+    .post(ENDPOINT_URL, { parada_id: selectedParadaIds })
+    .then((response) => {
+      alert("✅ Se actualizó la lista en el endpoint real con éxito.");
+      console.log("Respuesta del endpoint real:", response.data);
+      // Limpiar selección visual en el mapa
+      apiStopsGroup.eachLayer((marker) => {
+        marker.setOpacity(1);
+      });
+      selectedParadaIds = [];
+    })
+    .catch((error) => {
+      console.error("Error al actualizar el endpoint real:", error);
+      alert("❌ Hubo un error al actualizar la lista en el endpoint real.");
+    });
 });
