@@ -1,0 +1,28 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Administración de Rutas</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-XQoYMqMTK8LvdxXYGF1Xa/14qxo0qtLyTytl1PLez8A=" crossorigin="" />
+    <link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@2.18.3/dist/leaflet-geoman.css" />
+    <link rel="stylesheet" href="{% static 'frontend/style.css' %}" />
+  </head>
+  <body>
+    <div id="controls">
+      <select id="rutas-select">
+        <option value="">-- Cargando rutas... --</option>
+      </select>
+      <select id="sentido-select">
+        <option value="1">Ida (1)</option>
+        <option value="2">Vuelta (2)</option>
+      </select>
+      <button id="btn-refrescar-paradas">Mostrar Paradas</button>
+    </div>
+    <div id="map"></div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-dp8yWxf+r/0SKFl5HDiZVPXGlbAURywOXgKnqxF2zZ8=" crossorigin=""></script>
+    <script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@2.18.3/dist/leaflet-geoman.min.js"></script>
+    <script src="{% static 'frontend/script.js' %}"></script>
+  </body>
+</html>

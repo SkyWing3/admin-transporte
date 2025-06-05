@@ -1,47 +1,32 @@
-# Panel Adminsitrativo para crear rutas
-Un portal web para poder crear rutas de manera intuitiva para nuestra aplicación de transporte público.
+# Panel Administrativo para crear rutas
 
-## Requisitos Previos
-* Node.js v14 o superior
-* npm v6 o superior
+Aplicación web basada en Django. Provee una API REST para gestionar rutas y un panel interactivo con Leaflet para registrar paradas.
 
-## Inicialización
-1. Clona el repositorio:
-```
-git clone https://github.com/SkyWing3/admin-transporte.git
-```
-2. Instala dependencias:
-```
-npm install
-```
-3. Levantar la pagina web:
-```
-node server.js
-```
-* URL por defecto: http://localhost:3000
+## Requisitos
+- Python 3
+- pip
 
-## API Rest urls
-```
-http://127.0.0.1:8000/api/rutas/
-```
-```
-http://127.0.0.1:8000/api/paradas/
-```
-```
-http://127.0.0.1:8000/api/coordenadas/
-```
-```
-http://127.0.0.1:8000/api/parada-ruta/
-```
-```
-http://127.0.0.1:8000/api/horarios/
-```
-```
-http://127.0.0.1:8000/api/dias/
-```
-```
-http://127.0.0.1:8000/api/dia-horario/
-```
-```
-http://127.0.0.1:8000/api/ruta-horario/
-```
+## Instalación
+1. Instala las dependencias de Python:
+   ```bash
+   pip install -r requirements.txt
+   ```
+2. Ejecuta las migraciones:
+   ```bash
+   python manage.py migrate
+   ```
+3. Inicia el servidor de desarrollo:
+   ```bash
+   python manage.py runserver
+   ```
+   El panel estará disponible en `http://localhost:8000/`.
+
+## Endpoints API
+- `/api/rutas/`
+- `/api/paradas/`
+- `/api/coordenadas/`
+- `/api/parada-ruta/`
+- `/api/horarios/`
+- `/api/dias/`
+- `/api/dia-horario/`
+- `/api/ruta-horario/`
