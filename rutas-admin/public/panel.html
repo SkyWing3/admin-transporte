@@ -14,12 +14,21 @@
   </head>
 
   <body>
+    <script>
+      // Al cargar la página, verificamos si hay token; si no, redirigimos a login.
+      const tokenA = localStorage.getItem('authToken');
+      if (!tokenA) {
+        // No hay token: volvemos a login
+        window.location.href = '/login.html';
+      }
+      // (opcional) Podrías también hacer un GET a /api/verify/ para confirmar que el token siga válido.
+    </script>
     <!-- CONTROLES SUPERIORES -->
     <div id="controls">
       <!-- 0) SELECT DE FUENTE DE DATOS -->
       <select id="data-source-select">
-        <option value="SIMON">SIMON</option>
-        <option value="API">Mi API Django</option>
+        <option value="SIMON">API Pumakatari</option>
+        <option value="API">API Django</option>
       </select>
 
       <!-- 1) SELECT DE RUTAS (GET SIMON) -->
@@ -34,7 +43,7 @@
       </select>
 
       <!-- 3) Botón para “Refrescar paradas” desde SIMON -->
-      <button id="btn-refrescar-paradas">Mostrar Paradas SIMON</button>
+      <button id="btn-refrescar-paradas">Mostrar Paradas</button>
 
       <!-- 4) Botón para “Enviar paradas seleccionadas” (solo visible en modo API) -->
       <button id="btn-enviar-paradas" style="display: none;">Enviar paradas</button>

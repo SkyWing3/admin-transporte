@@ -30,6 +30,7 @@ map.pm.addControls({
 });
 const simonStopsGroup = L.featureGroup().addTo(map);
 const apiStopsGroup = L.featureGroup();
+const token = localStorage.getItem('authToken');
 
 // ——————————————————————————————————————————————
 //  B) ELEMENTOS DEL DOM (sin cambios)
@@ -161,7 +162,7 @@ async function crearRutaDRF(nombreRuta, sentidoTexto) {
   const payload = { nombre: nombreRuta, sentido: sentidoTexto, estado: true };
   const resp = await fetch("http://127.0.0.1:8000/api/rutas/", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", 'Authorization': `Token ${token}` },
     body: JSON.stringify(payload),
   });
   if (!resp.ok) {
@@ -206,7 +207,7 @@ async function crearParadaDRF(lat, lng, nombreParada, direccionParada) {
   };
   const resp = await fetch("http://127.0.0.1:8000/api/paradas/", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", 'Authorization': `Token ${token}` },
     body: JSON.stringify(payload),
   });
   if (!resp.ok) {
@@ -292,7 +293,12 @@ map.on("pm:create", async function (e) {
 // ——————————————————————————————————————————————
 async function cargarParadasDesdeAPI() {
   try {
-    const resp = await fetch("http://127.0.0.1:8000/api/paradas/");
+    const resp = await fetch("http://127.0.0.1:8000/api/paradas/", {
+      method: 'GET',
+      headers: {
+        'Authorization': `Token ${token}`
+      }
+    });
     if (!resp.ok) throw new Error(`DRF GET paradas HTTP ${resp.status}`);
     const paradas = await resp.json();
     apiStopsGroup.clearLayers();
@@ -331,10 +337,10 @@ async function cargarParadasDesdeAPI() {
 //     → Aquí hacemos POST real al endpoint de Node en /paradas_mock
 // ——————————————————————————————————————————————
 btnEnviarParadas.addEventListener("click", () => {
-  if (selectedParadaIds.length === 0) {
+  /*if (selectedParadaIds.length === 0) {
     alert("No hay paradas seleccionadas para enviar.");
     return;
-  }
+  }*/
   axios
     .post(ENDPOINT_URL, { parada_id: selectedParadaIds })
     .then((response) => {
