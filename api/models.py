@@ -1,6 +1,14 @@
 from django.db import models
+from django.utils import timezone
 
-class Ruta(models.Model):
+class TimeStampedModel(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        abstract = True
+
+class Ruta(TimeStampedModel):
     id_ruta_puma = models.AutoField(primary_key=True)
     nombre       = models.CharField(max_length=50)
     sentido      = models.CharField(max_length=20)
@@ -9,7 +17,7 @@ class Ruta(models.Model):
     def __str__(self):
         return f"{self.nombre} ({self.sentido})"
 
-class Parada(models.Model):
+class Parada(TimeStampedModel):
     id_parada = models.AutoField(primary_key=True)
     latitud   = models.FloatField()
     longitud  = models.FloatField()
@@ -20,7 +28,7 @@ class Parada(models.Model):
     def __str__(self):
         return self.nombre
 
-class Coordenada(models.Model):
+class Coordenada(TimeStampedModel):
     id_coordenada = models.AutoField(primary_key=True)
     latitud       = models.FloatField()
     longitud      = models.FloatField()
@@ -28,7 +36,7 @@ class Coordenada(models.Model):
     def __str__(self):
         return f"{self.latitud}, {self.longitud}"
 
-class ParadaRuta(models.Model):
+class ParadaRuta(TimeStampedModel):
     ruta         = models.ForeignKey(Ruta, on_delete=models.CASCADE, db_column='id_ruta')
     parada       = models.ForeignKey(Parada, on_delete=models.CASCADE, db_column='id_parada')
     orden        = models.IntegerField()
@@ -49,7 +57,7 @@ Ruta.paradas = models.ManyToManyField(
     related_name='rutas'
 )
 
-class Horario(models.Model):
+class Horario(TimeStampedModel):
     id_horario  = models.AutoField(primary_key=True)
     hora_inicio = models.IntegerField()
     hora_final  = models.IntegerField()
@@ -57,14 +65,14 @@ class Horario(models.Model):
     def __str__(self):
         return f"{self.hora_inicio} - {self.hora_final}"
 
-class Dia(models.Model):
+class Dia(TimeStampedModel):
     dia_id      = models.AutoField(primary_key=True)
     descripcion = models.CharField(max_length=15)
 
     def __str__(self):
         return self.descripcion
 
-class DiaHorario(models.Model):
+class DiaHorario(TimeStampedModel):
     id_horar = models.ForeignKey(Horario, on_delete=models.CASCADE, db_column='id_horar')
     dia_id   = models.ForeignKey(Dia, on_delete=models.CASCADE, db_column='dia_id')
 
