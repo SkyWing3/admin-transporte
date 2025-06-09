@@ -26,6 +26,14 @@ class RutaViewSet(viewsets.ModelViewSet):
 
     permission_classes = [IsAuthenticated]
 
+    @action(detail=True, methods=['get'])
+    def paradas(self, request, pk=None):
+        """Retorna las paradas asociadas a una ruta."""
+        ruta = self.get_object()
+        paradas = ruta.paradas.all()
+        serializer = ParadaSerializer(paradas, many=True)
+        return Response(serializer.data)
+
     @action(detail=False, methods=['get'])
     def sync(self, request):
         since = request.query_params.get('since')

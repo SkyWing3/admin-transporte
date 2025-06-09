@@ -40,6 +40,8 @@ const rutasSelect = document.getElementById("rutas-select");
 const sentidoSelect = document.getElementById("sentido-select");
 const btnRefrescarParadas = document.getElementById("btn-refrescar-paradas");
 const btnEnviarParadas = document.getElementById("btn-enviar-paradas");
+const rutasApiSelect = document.getElementById("rutas-api-select");
+const paradasApiSelect = document.getElementById("paradas-api-select");
 let selectedParadaIds = [];
 
 // ——————————————————————————————————————————————
@@ -55,13 +57,17 @@ function showSimonControls() {
   rutasSelect.style.display = "";
   sentidoSelect.style.display = "";
   btnRefrescarParadas.style.display = "";
+  rutasApiSelect.style.display = "none";
+  paradasApiSelect.style.display = "none";
   btnEnviarParadas.style.display = "none";
 }
 function showApiControls() {
   rutasSelect.style.display = "none";
   sentidoSelect.style.display = "none";
   btnRefrescarParadas.style.display = "none";
-  btnEnviarParadas.style.display = ""; 
+  rutasApiSelect.style.display = "";
+  paradasApiSelect.style.display = "";
+  btnEnviarParadas.style.display = "";
 }
 dataSourceSelect.addEventListener("change", () => {
   const source = dataSourceSelect.value;
@@ -73,12 +79,12 @@ dataSourceSelect.addEventListener("change", () => {
     fetchRutasSimon();
   } else if (source === "API") {
     showApiControls();
-    cargarParadasDesdeAPI();
+    fetchRutasAPI();
   }
 });
 if (dataSourceSelect.value === "API") {
   showApiControls();
-  cargarParadasDesdeAPI();
+  fetchRutasAPI();
 } else {
   showSimonControls();
   fetchRutasSimon();
@@ -153,6 +159,82 @@ btnRefrescarParadas.addEventListener("click", () => {
   const rutaId = parseInt(rutasSelect.value, 10);
   const sentido = parseInt(sentidoSelect.value, 10);
   fetchParadasSimon(rutaId, sentido);
+});
+
+// ——————————————————————————————————————————————
+//  FUNCIONES PARA CARGAR RUTAS Y PARADAS DESDE LA API DJANGO
+// ——————————————————————————————————————————————
+async function fetchRutasAPI() {
+  try {
+    const resp = await fetch("http://127.0.0.1:8000/api/rutas/", {
+      headers: { 'Authorization': `Token ${token}` }
+    });
+    if (!resp.ok) throw new Error(`DRF GET rutas HTTP ${resp.status}`);
+    const rutas = await resp.json();
+    rutasApiSelect.innerHTML = '<option value="">-- Seleccione ruta --</option>';
+    rutas.forEach(r => {
+      const opt = document.createElement('option');
+      opt.value = r.id_ruta_puma;
+      opt.textContent = r.nombre;
+      rutasApiSelect.appendChild(opt);
+    });
+    paradasApiSelect.innerHTML = '<option value="">-- Seleccione ruta --</option>';
+  } catch (err) {
+    console.error('Error al cargar rutas API:', err);
+    rutasApiSelect.innerHTML = '<option value="">-- Error cargando rutas --</option>';
+  }
+}
+
+async function fetchParadasRutaAPI(rutaId) {
+  if (!rutaId) {
+    apiStopsGroup.clearLayers();
+    paradasApiSelect.innerHTML = '<option value="">-- Seleccione ruta --</option>';
+    return;
+  }
+  try {
+    const resp = await fetch(`http://127.0.0.1:8000/api/rutas/${rutaId}/paradas/`, {
+      headers: { 'Authorization': `Token ${token}` }
+    });
+    if (!resp.ok) throw new Error(`DRF GET paradas ruta HTTP ${resp.status}`);
+    const paradas = await resp.json();
+    apiStopsGroup.clearLayers();
+    paradasApiSelect.innerHTML = '<option value="">-- Seleccione parada --</option>';
+    paradas.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id_parada;
+      opt.textContent = p.nombre;
+      paradasApiSelect.appendChild(opt);
+
+      const latP = parseFloat(p.latitud);
+      const lngP = parseFloat(p.longitud);
+      const marker = L.marker([latP, lngP], { title: p.nombre, opacity: 1 }).addTo(apiStopsGroup);
+      marker.paradaId = p.id_parada;
+      marker.bindPopup(`<strong>${p.nombre}</strong><br/>ID: ${p.id_parada}`);
+      marker.on('click', () => {
+        const idx = selectedParadaIds.indexOf(p.id_parada);
+        if (idx === -1) {
+          selectedParadaIds.push(p.id_parada);
+          marker.setOpacity(0.5);
+        } else {
+          selectedParadaIds.splice(idx, 1);
+          marker.setOpacity(1);
+        }
+      });
+    });
+    apiStopsGroup.addTo(map);
+    const bounds = apiStopsGroup.getBounds();
+    if (bounds.isValid()) {
+      map.fitBounds(bounds.pad(0.2));
+    }
+  } catch (err) {
+    console.error('Error al cargar paradas de la ruta:', err);
+    paradasApiSelect.innerHTML = '<option value="">-- Error cargando paradas --</option>';
+  }
+}
+
+rutasApiSelect.addEventListener('change', () => {
+  const rutaId = parseInt(rutasApiSelect.value, 10);
+  fetchParadasRutaAPI(rutaId);
 });
 
 // ——————————————————————————————————————————————
