@@ -42,7 +42,9 @@ const btnRefrescarParadas = document.getElementById("btn-refrescar-paradas");
 const btnEnviarParadas = document.getElementById("btn-enviar-paradas");
 const rutasApiSelect = document.getElementById("rutas-api-select");
 const btnMostrarParadasApi = document.getElementById("btn-mostrar-paradas-api");
+const btnToggleRuta = document.getElementById("btn-toggle-ruta");
 let selectedParadaIds = [];
+let rutasDataAPI = [];
 
 // ——————————————————————————————————————————————
 //  C) ENDPOINT REAL DE NODE
@@ -59,6 +61,7 @@ function showSimonControls() {
   btnRefrescarParadas.style.display = "";
   rutasApiSelect.style.display = "none";
   btnMostrarParadasApi.style.display = "none";
+  btnToggleRuta.style.display = "none";
   btnEnviarParadas.style.display = "none";
 }
 function showApiControls() {
@@ -67,6 +70,7 @@ function showApiControls() {
   btnRefrescarParadas.style.display = "none";
   rutasApiSelect.style.display = "";
   btnMostrarParadasApi.style.display = "";
+  btnToggleRuta.style.display = "none";
   btnEnviarParadas.style.display = "none";
 }
 dataSourceSelect.addEventListener("change", () => {
@@ -349,6 +353,7 @@ async function fetchRutasAPI() {
     });
     if (!resp.ok) throw new Error(`DRF GET rutas HTTP ${resp.status}`);
     const rutas = await resp.json();
+    rutasDataAPI = rutas;
     rutasApiSelect.innerHTML = '<option value="">-- Seleccione ruta --</option>';
     rutas.forEach(r => {
       const opt = document.createElement('option');
@@ -356,6 +361,7 @@ async function fetchRutasAPI() {
       opt.textContent = r.nombre;
       rutasApiSelect.appendChild(opt);
     });
+    updateToggleButtonLabel(null);
   } catch (err) {
     console.error('Error al cargar rutas desde API:', err);
     rutasApiSelect.innerHTML = '<option value="">-- Error cargando rutas --</option>';
@@ -406,6 +412,57 @@ async function mostrarParadasRutaAPI(rutaId) {
 btnMostrarParadasApi.addEventListener('click', () => {
   const rutaId = parseInt(rutasApiSelect.value, 10);
   mostrarParadasRutaAPI(rutaId);
+});
+
+function updateToggleButtonLabel(rutaId) {
+  const ruta = rutasDataAPI.find(r => r.id_ruta_puma === rutaId);
+  if (!ruta) {
+    btnToggleRuta.style.display = "none";
+    return;
+  }
+  btnToggleRuta.style.display = "";
+  btnToggleRuta.textContent = ruta.estado ? "Deshabilitar" : "Habilitar";
+}
+
+async function toggleRutaEstado(rutaId) {
+  const ruta = rutasDataAPI.find(r => r.id_ruta_puma === rutaId);
+  if (!ruta) return;
+  const nuevoEstado = !ruta.estado;
+  try {
+    const resp = await fetch(`http://127.0.0.1:8000/api/rutas/${rutaId}/`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Token ${token}`
+      },
+      body: JSON.stringify({ estado: nuevoEstado })
+    });
+    if (!resp.ok) {
+      const txt = await resp.text();
+      throw new Error(`DRF PATCH ruta HTTP ${resp.status} – ${txt}`);
+    }
+    ruta.estado = nuevoEstado;
+    updateToggleButtonLabel(rutaId);
+  } catch (err) {
+    console.error('Error al actualizar estado de ruta:', err);
+    alert('No se pudo cambiar el estado de la ruta.');
+  }
+}
+
+rutasApiSelect.addEventListener('change', () => {
+  const rutaId = parseInt(rutasApiSelect.value, 10);
+  if (isNaN(rutaId)) {
+    updateToggleButtonLabel(null);
+  } else {
+    updateToggleButtonLabel(rutaId);
+  }
+});
+
+btnToggleRuta.addEventListener('click', () => {
+  const rutaId = parseInt(rutasApiSelect.value, 10);
+  if (!isNaN(rutaId)) {
+    toggleRutaEstado(rutaId);
+  }
 });
 
 // ——————————————————————————————————————————————
