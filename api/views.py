@@ -180,3 +180,71 @@ class LoginAPIView(APIView):
         # Si es válido y es staff, creamos o recuperamos el token
         token, created = Token.objects.get_or_create(user=user)
         return Response({"token": token.key})
+
+
+class AppRegisterAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        email = request.data.get('email')
+        password = request.data.get('password')
+        age = request.data.get('age')
+        name = request.data.get('name')
+
+        if not email or not password or not name:
+            return Response({"error": "email, password y name son requeridos"}, status=status.HTTP_400_BAD_REQUEST)
+
+        from django.contrib.auth.models import User
+        if User.objects.filter(username=email).exists():
+            return Response({"error": "Usuario ya existe"}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = User.objects.create_user(username=email, email=email, password=password, first_name=name)
+        user.is_staff = False
+        user.save()
+
+        # Guardamos edad en el perfil
+        from .models import AppUserProfile
+        if age is not None:
+            try:
+                age_int = int(age)
+            except (TypeError, ValueError):
+                age_int = None
+        else:
+            age_int = None
+        AppUserProfile.objects.create(user=user, age=age_int)
+
+        token, _ = Token.objects.get_or_create(user=user)
+        return Response({"token": token.key, "userId": user.id, "name": user.first_name})
+
+
+class AppLoginAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        email = request.data.get('email')
+        password = request.data.get('password')
+        if not email or not password:
+            return Response({"error": "email y password requeridos"}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = authenticate(username=email, password=password)
+        if user is None:
+            return Response({"error": "Credenciales incorrectas"}, status=status.HTTP_401_UNAUTHORIZED)
+
+        token, _ = Token.objects.get_or_create(user=user)
+        return Response({"token": token.key, "userId": user.id, "name": user.first_name})
+
+
+class DeleteUserAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, user_id, *args, **kwargs):
+        from django.contrib.auth.models import User
+        if request.user.id != user_id:
+            return Response({"error": "No autorizado"}, status=status.HTTP_403_FORBIDDEN)
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        user.delete()
+        Token.objects.filter(user=user).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

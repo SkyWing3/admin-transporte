@@ -4,7 +4,8 @@ from .views import (
     RutaViewSet, ParadaViewSet, CoordenadaViewSet,
     ParadaRutaViewSet, HorarioViewSet, DiaViewSet,
     DiaHorarioViewSet, RutaHorarioViewSet,
-    NotificacionViewSet
+    NotificacionViewSet,
+    AppRegisterAPIView, AppLoginAPIView, DeleteUserAPIView
 )
 
 router = DefaultRouter()
@@ -20,4 +21,7 @@ router.register(r'notificaciones', NotificacionViewSet, basename='notificacion')
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('auth/register', AppRegisterAPIView.as_view(), name='app-register'),
+    path('auth/login', AppLoginAPIView.as_view(), name='app-login'),
+    path('users/<int:user_id>', DeleteUserAPIView.as_view(), name='app-delete'),
 ]
