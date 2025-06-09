@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Ruta, Parada, Coordenada, Horario, Dia, RutaHorario, DiaHorario, ParadaRuta
+from .models import Ruta, Parada, Coordenada, Horario, Dia, RutaHorario, DiaHorario, ParadaRuta, Notificacion
 
 admin.site.register(Coordenada)
 admin.site.register(Ruta)
@@ -9,3 +9,4 @@ admin.site.register(Dia)
 admin.site.register(RutaHorario)
 admin.site.register(DiaHorario)
 admin.site.register(ParadaRuta)
+admin.site.register(Notificacion)
