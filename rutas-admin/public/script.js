@@ -40,6 +40,8 @@ const rutasSelect = document.getElementById("rutas-select");
 const sentidoSelect = document.getElementById("sentido-select");
 const btnRefrescarParadas = document.getElementById("btn-refrescar-paradas");
 const btnEnviarParadas = document.getElementById("btn-enviar-paradas");
+const rutasApiSelect = document.getElementById("rutas-api-select");
+const btnMostrarParadasApi = document.getElementById("btn-mostrar-paradas-api");
 let selectedParadaIds = [];
 
 // ——————————————————————————————————————————————
@@ -55,13 +57,17 @@ function showSimonControls() {
   rutasSelect.style.display = "";
   sentidoSelect.style.display = "";
   btnRefrescarParadas.style.display = "";
+  rutasApiSelect.style.display = "none";
+  btnMostrarParadasApi.style.display = "none";
   btnEnviarParadas.style.display = "none";
 }
 function showApiControls() {
   rutasSelect.style.display = "none";
   sentidoSelect.style.display = "none";
   btnRefrescarParadas.style.display = "none";
-  btnEnviarParadas.style.display = ""; 
+  rutasApiSelect.style.display = "";
+  btnMostrarParadasApi.style.display = "";
+  btnEnviarParadas.style.display = "none";
 }
 dataSourceSelect.addEventListener("change", () => {
   const source = dataSourceSelect.value;
@@ -73,12 +79,12 @@ dataSourceSelect.addEventListener("change", () => {
     fetchRutasSimon();
   } else if (source === "API") {
     showApiControls();
-    cargarParadasDesdeAPI();
+    fetchRutasAPI();
   }
 });
 if (dataSourceSelect.value === "API") {
   showApiControls();
-  cargarParadasDesdeAPI();
+  fetchRutasAPI();
 } else {
   showSimonControls();
   fetchRutasSimon();
@@ -331,6 +337,76 @@ async function cargarParadasDesdeAPI() {
     alert("No se pudieron cargar las paradas desde tu API.");
   }
 }
+
+// Obtener rutas desde la API Django y llenar el select
+async function fetchRutasAPI() {
+  try {
+    const resp = await fetch("http://127.0.0.1:8000/api/rutas/", {
+      method: 'GET',
+      headers: {
+        'Authorization': `Token ${token}`
+      }
+    });
+    if (!resp.ok) throw new Error(`DRF GET rutas HTTP ${resp.status}`);
+    const rutas = await resp.json();
+    rutasApiSelect.innerHTML = '<option value="">-- Seleccione ruta --</option>';
+    rutas.forEach(r => {
+      const opt = document.createElement('option');
+      opt.value = r.id_ruta_puma;
+      opt.textContent = r.nombre;
+      rutasApiSelect.appendChild(opt);
+    });
+  } catch (err) {
+    console.error('Error al cargar rutas desde API:', err);
+    rutasApiSelect.innerHTML = '<option value="">-- Error cargando rutas --</option>';
+  }
+}
+
+// Mostrar paradas asociadas a una ruta específica utilizando ParadaRuta
+async function mostrarParadasRutaAPI(rutaId) {
+  if (!rutaId) {
+    apiStopsGroup.clearLayers();
+    return;
+  }
+  apiStopsGroup.clearLayers();
+  try {
+    const respPR = await fetch("http://127.0.0.1:8000/api/parada-ruta/", {
+      method: 'GET',
+      headers: {
+        'Authorization': `Token ${token}`
+      }
+    });
+    if (!respPR.ok) throw new Error(`DRF GET parada-ruta HTTP ${respPR.status}`);
+    const relaciones = await respPR.json();
+    const filtradas = relaciones.filter(pr => pr.ruta === rutaId);
+    for (const rel of filtradas) {
+      const paradaResp = await fetch(`http://127.0.0.1:8000/api/paradas/${rel.parada}/`, {
+        method: 'GET',
+        headers: { 'Authorization': `Token ${token}` }
+      });
+      if (!paradaResp.ok) continue;
+      const parada = await paradaResp.json();
+      const latP = parseFloat(parada.latitud);
+      const lngP = parseFloat(parada.longitud);
+      const nombre = parada.nombre || 'Parada sin nombre';
+      const marker = L.marker([latP, lngP], { title: nombre }).addTo(apiStopsGroup);
+      marker.bindPopup(`<strong>${nombre}</strong><br/>Orden: ${rel.orden}`);
+    }
+    apiStopsGroup.addTo(map);
+    const bounds = apiStopsGroup.getBounds();
+    if (bounds.isValid()) {
+      map.fitBounds(bounds.pad(0.2));
+    }
+  } catch (err) {
+    console.error('Error al mostrar paradas por ruta:', err);
+    alert('No se pudieron cargar las paradas de la ruta seleccionada.');
+  }
+}
+
+btnMostrarParadasApi.addEventListener('click', () => {
+  const rutaId = parseInt(rutasApiSelect.value, 10);
+  mostrarParadasRutaAPI(rutaId);
+});
 
 // ——————————————————————————————————————————————
 //  I) BOTÓN “Enviar paradas” (solo en modo API)
