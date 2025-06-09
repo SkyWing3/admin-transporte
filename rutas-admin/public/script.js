@@ -40,6 +40,7 @@ const rutasSelect = document.getElementById("rutas-select");
 const sentidoSelect = document.getElementById("sentido-select");
 const btnRefrescarParadas = document.getElementById("btn-refrescar-paradas");
 const btnEnviarParadas = document.getElementById("btn-enviar-paradas");
+const btnDibujarApi = document.getElementById("btn-dibujar-api");
 let selectedParadaIds = [];
 
 // ——————————————————————————————————————————————
@@ -56,12 +57,14 @@ function showSimonControls() {
   sentidoSelect.style.display = "";
   btnRefrescarParadas.style.display = "";
   btnEnviarParadas.style.display = "none";
+  btnDibujarApi.style.display = "none";
 }
 function showApiControls() {
-  rutasSelect.style.display = "none";
+  rutasSelect.style.display = "";
   sentidoSelect.style.display = "none";
   btnRefrescarParadas.style.display = "none";
-  btnEnviarParadas.style.display = ""; 
+  btnEnviarParadas.style.display = "";
+  btnDibujarApi.style.display = "";
 }
 dataSourceSelect.addEventListener("change", () => {
   const source = dataSourceSelect.value;
@@ -73,12 +76,12 @@ dataSourceSelect.addEventListener("change", () => {
     fetchRutasSimon();
   } else if (source === "API") {
     showApiControls();
-    cargarParadasDesdeAPI();
+    fetchRutasAPI();
   }
 });
 if (dataSourceSelect.value === "API") {
   showApiControls();
-  cargarParadasDesdeAPI();
+  fetchRutasAPI();
 } else {
   showSimonControls();
   fetchRutasSimon();
@@ -101,6 +104,29 @@ async function fetchRutasSimon() {
     });
   } catch (err) {
     console.error("Error al cargar rutas SIMON:", err);
+    rutasSelect.innerHTML = '<option value="">-- Error cargando rutas --</option>';
+  }
+}
+
+async function fetchRutasAPI() {
+  try {
+    const resp = await fetch("http://127.0.0.1:8000/api/rutas/", {
+      method: 'GET',
+      headers: {
+        'Authorization': `Token ${token}`
+      }
+    });
+    if (!resp.ok) throw new Error(`DRF GET rutas HTTP ${resp.status}`);
+    const rutas = await resp.json();
+    rutasSelect.innerHTML = '<option value="">-- Seleccione ruta --</option>';
+    rutas.forEach(r => {
+      const opt = document.createElement('option');
+      opt.value = r.id_ruta_puma;
+      opt.textContent = r.nombre;
+      rutasSelect.appendChild(opt);
+    });
+  } catch (err) {
+    console.error('Error al cargar rutas desde API:', err);
     rutasSelect.innerHTML = '<option value="">-- Error cargando rutas --</option>';
   }
 }
@@ -153,6 +179,15 @@ btnRefrescarParadas.addEventListener("click", () => {
   const rutaId = parseInt(rutasSelect.value, 10);
   const sentido = parseInt(sentidoSelect.value, 10);
   fetchParadasSimon(rutaId, sentido);
+});
+
+btnDibujarApi.addEventListener('click', () => {
+  const rutaId = parseInt(rutasSelect.value, 10);
+  if (!rutaId) {
+    alert('Selecciona una ruta.');
+    return;
+  }
+  cargarParadasDesdeAPIRuta(rutaId);
 });
 
 // ——————————————————————————————————————————————
@@ -329,6 +364,41 @@ async function cargarParadasDesdeAPI() {
   } catch (err) {
     console.error("Error al cargar paradas desde API:", err);
     alert("No se pudieron cargar las paradas desde tu API.");
+  }
+}
+
+async function cargarParadasDesdeAPIRuta(rutaId) {
+  if (!rutaId) {
+    apiStopsGroup.clearLayers();
+    return;
+  }
+  try {
+    const resp = await fetch(`http://127.0.0.1:8000/api/rutas/${rutaId}/paradas/`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Token ${token}`
+      }
+    });
+    if (!resp.ok) throw new Error(`DRF GET paradas ruta HTTP ${resp.status}`);
+    const paradas = await resp.json();
+    apiStopsGroup.clearLayers();
+    paradas.forEach(p => {
+      const latP = parseFloat(p.latitud);
+      const lngP = parseFloat(p.longitud);
+      const nombre = p.nombre || 'Parada sin nombre';
+      const idParada = p.id_parada;
+      const marker = L.marker([latP, lngP], { title: nombre, opacity: 1 }).addTo(apiStopsGroup);
+      marker.paradaId = idParada;
+      marker.bindPopup(`<strong>${nombre}</strong><br/>ID: ${idParada}`);
+    });
+    apiStopsGroup.addTo(map);
+    const bounds = apiStopsGroup.getBounds();
+    if (bounds.isValid()) {
+      map.fitBounds(bounds.pad(0.2));
+    }
+  } catch (err) {
+    console.error('Error al cargar paradas de la ruta:', err);
+    alert('No se pudieron cargar las paradas de la ruta.');
   }
 }
 

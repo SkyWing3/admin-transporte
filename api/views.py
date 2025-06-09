@@ -36,6 +36,14 @@ class RutaViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(qs, many=True)
         return Response(serializer.data)
 
+    @action(detail=True, methods=['get'])
+    def paradas(self, request, pk=None):
+        """Retorna las paradas asociadas a la ruta especificada."""
+        ruta = self.get_object()
+        paradas_qs = ruta.paradas.order_by('paradaruta__orden')
+        serializer = ParadaSerializer(paradas_qs, many=True)
+        return Response(serializer.data)
+
 class ParadaViewSet(viewsets.ModelViewSet):
     queryset = Parada.objects.all()
     serializer_class = ParadaSerializer
