@@ -44,7 +44,9 @@ const rutasApiSelect = document.getElementById("rutas-api-select");
 const btnMostrarParadasApi = document.getElementById("btn-mostrar-paradas-api");
 const btnToggleRuta = document.getElementById("btn-toggle-ruta");
 const btnAnuncio = document.getElementById("btn-anuncio");
+const anuncioOverlay = document.getElementById("anuncio-overlay");
 const anuncioForm = document.getElementById("anuncio-form");
+const cerrarAnuncio = document.getElementById("cerrar-anuncio");
 const rutaAfectadaSelect = document.getElementById("anuncio-ruta-afectada");
 const rutaAuxiliarSelect = document.getElementById("anuncio-ruta-auxiliar");
 const paradaAfectadaSelect = document.getElementById("parada-afectada-select");
@@ -486,10 +488,15 @@ btnToggleRuta.addEventListener('click', () => {
 //  J) FUNCIONES PARA FORMULARIO DE ANUNCIO
 // ——————————————————————————————————————————————
 function toggleAnuncioForm() {
-  anuncioForm.style.display = anuncioForm.style.display === 'none' ? '' : 'none';
+  const visible = anuncioOverlay.style.display === 'flex';
+  anuncioOverlay.style.display = visible ? 'none' : 'flex';
 }
 
 btnAnuncio.addEventListener('click', () => {
+  toggleAnuncioForm();
+});
+
+cerrarAnuncio.addEventListener('click', () => {
   toggleAnuncioForm();
 });
 
