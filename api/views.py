@@ -88,6 +88,23 @@ class ParadaRutaViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(qs, many=True)
         return Response(serializer.data)
 
+    @action(detail=False, methods=['post'])
+    def by_ruta(self, request):
+        """Devuelve todas las paradas de una ruta específica."""
+        ruta_id = request.data.get("ruta")
+        if not ruta_id:
+            return Response(
+                {"error": "Se requiere el id de la ruta en el cuerpo."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        qs = (
+            self.queryset.filter(ruta_id=ruta_id)
+            .select_related("parada")
+            .order_by("orden")
+        )
+        serializer = self.get_serializer(qs, many=True)
+        return Response(serializer.data)
+
 class HorarioViewSet(viewsets.ModelViewSet):
     queryset = Horario.objects.all()
     serializer_class = HorarioSerializer

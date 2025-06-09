@@ -387,14 +387,17 @@ async function cargarParadasDesdeAPIRuta(rutaId) {
     return;
   }
   try {
-    const resp = await fetch(`http://127.0.0.1:8000/api/rutas/${rutaId}/paradas/`, {
-      method: 'GET',
+    const resp = await fetch('http://127.0.0.1:8000/api/parada-ruta/by_ruta/', {
+      method: 'POST',
       headers: {
+        'Content-Type': 'application/json',
         'Authorization': 'Token ' + getAuthToken()
-      }
+      },
+      body: JSON.stringify({ ruta: rutaId })
     });
-    if (!resp.ok) throw new Error(`DRF GET paradas ruta HTTP ${resp.status}`);
-    const paradas = await resp.json();
+    if (!resp.ok) throw new Error(`DRF POST paradas ruta HTTP ${resp.status}`);
+    const relaciones = await resp.json();
+    const paradas = relaciones.map(r => r.parada_data);
     apiStopsGroup.clearLayers();
     paradas.forEach(p => {
       const latP = parseFloat(p.latitud);
