@@ -45,3 +45,7 @@ http://127.0.0.1:8000/api/dia-horario/
 ```
 http://127.0.0.1:8000/api/ruta-horario/
 ```
+## Credenciales por defecto
+- **usuario**: `admin`
+- **contraseña**: `admin123`
+

@@ -16,9 +16,20 @@ class ParadaSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class ParadaRutaSerializer(serializers.ModelSerializer):
+    """Incluye los datos completos de la parada al serializar."""
+
+    parada_data = ParadaSerializer(source="parada", read_only=True)
+
     class Meta:
         model = ParadaRuta
-        fields = ['ruta', 'parada', 'orden', 'tiempo', 'id_coordenada']
+        fields = [
+            "ruta",
+            "parada",
+            "orden",
+            "tiempo",
+            "id_coordenada",
+            "parada_data",
+        ]
 
 class RutaSerializer(serializers.ModelSerializer):
     class Meta:

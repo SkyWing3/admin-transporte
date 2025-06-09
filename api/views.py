@@ -36,6 +36,14 @@ class RutaViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(qs, many=True)
         return Response(serializer.data)
 
+    @action(detail=True, methods=['get'])
+    def paradas(self, request, pk=None):
+        """Retorna las paradas asociadas a la ruta especificada."""
+        ruta = self.get_object()
+        paradas_qs = ruta.paradas.order_by('paradaruta__orden')
+        serializer = ParadaSerializer(paradas_qs, many=True)
+        return Response(serializer.data)
+
 class ParadaViewSet(viewsets.ModelViewSet):
     queryset = Parada.objects.all()
     serializer_class = ParadaSerializer
@@ -77,6 +85,23 @@ class ParadaRutaViewSet(viewsets.ModelViewSet):
         if since:
             dt = parse_datetime(since)
             qs = qs.filter(updated_at__gt=dt)
+        serializer = self.get_serializer(qs, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['post'])
+    def by_ruta(self, request):
+        """Devuelve todas las paradas de una ruta específica."""
+        ruta_id = request.data.get("ruta")
+        if not ruta_id:
+            return Response(
+                {"error": "Se requiere el id de la ruta en el cuerpo."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        qs = (
+            self.queryset.filter(ruta_id=ruta_id)
+            .select_related("parada")
+            .order_by("orden")
+        )
         serializer = self.get_serializer(qs, many=True)
         return Response(serializer.data)
 
