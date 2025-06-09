@@ -10,9 +10,23 @@ class TimeStampedModel(models.Model):
 
 class Ruta(TimeStampedModel):
     id_ruta_puma = models.AutoField(primary_key=True)
-    nombre       = models.CharField(max_length=50)
-    sentido      = models.CharField(max_length=20)
-    estado       = models.BooleanField(default=True)
+    nombre = models.CharField(max_length=50)
+    sentido = models.CharField(max_length=20)
+    estado = models.BooleanField(default=True)
+
+    paradas = models.ManyToManyField(
+        "Parada",
+        through="ParadaRuta",
+        through_fields=("ruta", "parada"),
+        related_name="rutas",
+    )
+
+    horarios = models.ManyToManyField(
+        "Horario",
+        through="RutaHorario",
+        through_fields=("rutas_id_ruta_puma", "horario_id_horario"),
+        related_name="rutas",
+    )
 
     def __str__(self):
         return f"{self.nombre} ({self.sentido})"
@@ -37,11 +51,11 @@ class Coordenada(TimeStampedModel):
         return f"{self.latitud}, {self.longitud}"
 
 class ParadaRuta(TimeStampedModel):
-    ruta         = models.ForeignKey(Ruta, on_delete=models.CASCADE, db_column='id_ruta')
-    parada       = models.ForeignKey(Parada, on_delete=models.CASCADE, db_column='id_parada')
-    orden        = models.IntegerField()
-    tiempo       = models.IntegerField()
-    id_coordenada = models.ForeignKey(Coordenada, on_delete=models.CASCADE, db_column='id_coordenada')
+    ruta = models.ForeignKey(Ruta, on_delete=models.CASCADE, db_column="id_ruta")
+    parada = models.ForeignKey(Parada, on_delete=models.CASCADE, db_column="id_parada")
+    orden = models.IntegerField()
+    tiempo = models.IntegerField()
+    id_coordenada = models.ForeignKey(Coordenada, on_delete=models.CASCADE, db_column="id_coordenada")
 
     class Meta:
         unique_together = ('ruta', 'parada')
@@ -50,17 +64,17 @@ class ParadaRuta(TimeStampedModel):
     def __str__(self):
         return f"Ruta {self.ruta_id} → Parada {self.parada_id} (orden {self.orden})"
 
-Ruta.paradas = models.ManyToManyField(
-    Parada,
-    through=ParadaRuta,
-    through_fields=('ruta', 'parada'),
-    related_name='rutas'
-)
-
 class Horario(TimeStampedModel):
-    id_horario  = models.AutoField(primary_key=True)
+    id_horario = models.AutoField(primary_key=True)
     hora_inicio = models.IntegerField()
-    hora_final  = models.IntegerField()
+    hora_final = models.IntegerField()
+
+    dias = models.ManyToManyField(
+        "Dia",
+        through="DiaHorario",
+        through_fields=("id_horar", "dia_id"),
+        related_name="horarios",
+    )
 
     def __str__(self):
         return f"{self.hora_inicio} - {self.hora_final}"
@@ -83,12 +97,6 @@ class DiaHorario(TimeStampedModel):
     def __str__(self):
         return f"{self.id_horar_id} – {self.dia_id_id}"
 
-Horario.dias = models.ManyToManyField(
-    Dia,
-    through=DiaHorario,
-    through_fields=('id_horar', 'dia_id'),
-    related_name='horarios'
-)
 
 class RutaHorario(models.Model):
     rutas_id_ruta_puma = models.ForeignKey(Ruta, on_delete=models.CASCADE, db_column='rutas_id_ruta_puma')
@@ -102,9 +110,3 @@ class RutaHorario(models.Model):
         return f"Ruta {self.rutas_id_ruta_puma_id} – Horario {self.horario_id_horario_id}"
 
 
-Ruta.horarios = models.ManyToManyField(
-    Horario,
-    through=RutaHorario,
-    through_fields=('rutas_id_ruta_puma', 'horario_id_horario'),
-    related_name='rutas'
-)
