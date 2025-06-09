@@ -30,7 +30,14 @@ map.pm.addControls({
 });
 const simonStopsGroup = L.featureGroup().addTo(map);
 const apiStopsGroup = L.featureGroup();
-const token = localStorage.getItem('authToken');
+function getAuthToken() {
+  const t = localStorage.getItem('authToken');
+  if (!t) {
+    window.location.href = '/login.html';
+    return null;
+  }
+  return t;
+}
 
 // ——————————————————————————————————————————————
 //  B) ELEMENTOS DEL DOM (sin cambios)
@@ -109,13 +116,20 @@ async function fetchRutasSimon() {
 }
 
 async function fetchRutasAPI() {
+  const token = getAuthToken();
+  if (!token) return;
   try {
     const resp = await fetch("http://127.0.0.1:8000/api/rutas/", {
       method: 'GET',
       headers: {
-        'Authorization': `Token ${token}`
+        'Authorization': 'Token ' + token
       }
     });
+    if (resp.status === 401) {
+      localStorage.removeItem('authToken');
+      window.location.href = '/login.html';
+      return;
+    }
     if (!resp.ok) throw new Error(`DRF GET rutas HTTP ${resp.status}`);
     const rutas = await resp.json();
     rutasSelect.innerHTML = '<option value="">-- Seleccione ruta --</option>';
@@ -197,7 +211,7 @@ async function crearRutaDRF(nombreRuta, sentidoTexto) {
   const payload = { nombre: nombreRuta, sentido: sentidoTexto, estado: true };
   const resp = await fetch("http://127.0.0.1:8000/api/rutas/", {
     method: "POST",
-    headers: { "Content-Type": "application/json", 'Authorization': `Token ${token}` },
+    headers: { "Content-Type": "application/json", 'Authorization': 'Token ' + getAuthToken() },
     body: JSON.stringify(payload),
   });
   if (!resp.ok) {
@@ -242,7 +256,7 @@ async function crearParadaDRF(lat, lng, nombreParada, direccionParada) {
   };
   const resp = await fetch("http://127.0.0.1:8000/api/paradas/", {
     method: "POST",
-    headers: { "Content-Type": "application/json", 'Authorization': `Token ${token}` },
+    headers: { "Content-Type": "application/json", 'Authorization': 'Token ' + getAuthToken() },
     body: JSON.stringify(payload),
   });
   if (!resp.ok) {
@@ -331,7 +345,7 @@ async function cargarParadasDesdeAPI() {
     const resp = await fetch("http://127.0.0.1:8000/api/paradas/", {
       method: 'GET',
       headers: {
-        'Authorization': `Token ${token}`
+        'Authorization': 'Token ' + getAuthToken()
       }
     });
     if (!resp.ok) throw new Error(`DRF GET paradas HTTP ${resp.status}`);
@@ -376,7 +390,7 @@ async function cargarParadasDesdeAPIRuta(rutaId) {
     const resp = await fetch(`http://127.0.0.1:8000/api/rutas/${rutaId}/paradas/`, {
       method: 'GET',
       headers: {
-        'Authorization': `Token ${token}`
+        'Authorization': 'Token ' + getAuthToken()
       }
     });
     if (!resp.ok) throw new Error(`DRF GET paradas ruta HTTP ${resp.status}`);
