@@ -56,6 +56,30 @@
       <button id="btn-enviar-paradas" style="display: none;">Enviar paradas</button>
     </div>
 
+    <!-- Botón de anuncio y formulario -->
+    <button id="btn-anuncio" class="btn-rojo">Anuncio</button>
+    <div id="anuncio-form" style="display: none;">
+      <label>Ruta afectada:
+        <select id="anuncio-ruta-afectada">
+          <option value="">-- Seleccione ruta --</option>
+        </select>
+      </label>
+      <div id="paradas-afectadas">
+        <select id="parada-afectada-select"></select>
+        <button type="button" id="add-parada">+</button>
+        <ul id="lista-paradas"></ul>
+      </div>
+      <label>Ruta auxiliar:
+        <select id="anuncio-ruta-auxiliar">
+          <option value="">-- Seleccione ruta --</option>
+        </select>
+      </label>
+      <label>Información:
+        <textarea id="anuncio-info"></textarea>
+      </label>
+      <button type="button" id="submit-anuncio" class="btn-rojo">Enviar</button>
+    </div>
+
     <!-- CONTENEDOR DEL MAPA -->
     <div id="map"></div>
 

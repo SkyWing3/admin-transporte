@@ -55,3 +55,43 @@ body {
 #fuente-select {
   margin-right: 12px;
 }
+
+/* Botón rojo de anuncio */
+#btn-anuncio {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: #c00;
+  color: #fff;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  z-index: 1000;
+}
+
+#anuncio-form {
+  position: absolute;
+  top: 50px;
+  right: 10px;
+  background: white;
+  border: 1px solid #ccc;
+  padding: 10px;
+  z-index: 1000;
+  width: 250px;
+}
+
+#anuncio-form label,
+#anuncio-form div {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.btn-rojo {
+  background: #c00;
+  color: #fff;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}

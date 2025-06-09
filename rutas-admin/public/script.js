@@ -43,8 +43,18 @@ const btnEnviarParadas = document.getElementById("btn-enviar-paradas");
 const rutasApiSelect = document.getElementById("rutas-api-select");
 const btnMostrarParadasApi = document.getElementById("btn-mostrar-paradas-api");
 const btnToggleRuta = document.getElementById("btn-toggle-ruta");
+const btnAnuncio = document.getElementById("btn-anuncio");
+const anuncioForm = document.getElementById("anuncio-form");
+const rutaAfectadaSelect = document.getElementById("anuncio-ruta-afectada");
+const rutaAuxiliarSelect = document.getElementById("anuncio-ruta-auxiliar");
+const paradaAfectadaSelect = document.getElementById("parada-afectada-select");
+const addParadaBtn = document.getElementById("add-parada");
+const listaParadas = document.getElementById("lista-paradas");
+const infoTextarea = document.getElementById("anuncio-info");
+const submitAnuncio = document.getElementById("submit-anuncio");
 let selectedParadaIds = [];
 let rutasDataAPI = [];
+let paradasAfectadasIds = [];
 
 // ——————————————————————————————————————————————
 //  C) ENDPOINT REAL DE NODE
@@ -355,11 +365,18 @@ async function fetchRutasAPI() {
     const rutas = await resp.json();
     rutasDataAPI = rutas;
     rutasApiSelect.innerHTML = '<option value="">-- Seleccione ruta --</option>';
+    rutaAfectadaSelect.innerHTML = '<option value="">-- Seleccione ruta --</option>';
+    rutaAuxiliarSelect.innerHTML = '<option value="">-- Seleccione ruta --</option>';
     rutas.forEach(r => {
       const opt = document.createElement('option');
       opt.value = r.id_ruta_puma;
       opt.textContent = r.nombre;
       rutasApiSelect.appendChild(opt);
+
+      const opt2 = opt.cloneNode(true);
+      rutaAfectadaSelect.appendChild(opt2);
+      const opt3 = opt.cloneNode(true);
+      rutaAuxiliarSelect.appendChild(opt3);
     });
     updateToggleButtonLabel(null);
   } catch (err) {
@@ -462,6 +479,111 @@ btnToggleRuta.addEventListener('click', () => {
   const rutaId = parseInt(rutasApiSelect.value, 10);
   if (!isNaN(rutaId)) {
     toggleRutaEstado(rutaId);
+  }
+});
+
+// ——————————————————————————————————————————————
+//  J) FUNCIONES PARA FORMULARIO DE ANUNCIO
+// ——————————————————————————————————————————————
+function toggleAnuncioForm() {
+  anuncioForm.style.display = anuncioForm.style.display === 'none' ? '' : 'none';
+}
+
+btnAnuncio.addEventListener('click', () => {
+  toggleAnuncioForm();
+});
+
+async function actualizarEstadoRuta(rutaId, estado) {
+  try {
+    await fetch(`http://127.0.0.1:8000/api/rutas/${rutaId}/`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Token ${token}`
+      },
+      body: JSON.stringify({ estado })
+    });
+  } catch (err) {
+    console.error('Error al actualizar ruta', err);
+  }
+}
+
+async function cargarParadasParaRuta(rutaId) {
+  paradaAfectadaSelect.innerHTML = '';
+  if (!rutaId) return;
+  try {
+    const respPR = await fetch('http://127.0.0.1:8000/api/parada-ruta/', {
+      method: 'GET',
+      headers: { 'Authorization': `Token ${token}` }
+    });
+    if (!respPR.ok) return;
+    const relaciones = await respPR.json();
+    const filtradas = relaciones.filter(pr => pr.ruta === rutaId);
+    for (const rel of filtradas) {
+      const paradaResp = await fetch(`http://127.0.0.1:8000/api/paradas/${rel.parada}/`, {
+        method: 'GET',
+        headers: { 'Authorization': `Token ${token}` }
+      });
+      if (!paradaResp.ok) continue;
+      const parada = await paradaResp.json();
+      const opt = document.createElement('option');
+      opt.value = parada.id_parada;
+      opt.textContent = parada.nombre;
+      paradaAfectadaSelect.appendChild(opt);
+    }
+  } catch (err) {
+    console.error('Error cargando paradas para ruta', err);
+  }
+}
+
+rutaAfectadaSelect.addEventListener('change', () => {
+  const id = parseInt(rutaAfectadaSelect.value, 10);
+  cargarParadasParaRuta(id);
+});
+
+addParadaBtn.addEventListener('click', () => {
+  const id = parseInt(paradaAfectadaSelect.value, 10);
+  if (isNaN(id) || paradasAfectadasIds.includes(id)) return;
+  paradasAfectadasIds.push(id);
+  const li = document.createElement('li');
+  li.textContent = paradaAfectadaSelect.options[paradaAfectadaSelect.selectedIndex].text;
+  li.dataset.id = id;
+  listaParadas.appendChild(li);
+});
+
+submitAnuncio.addEventListener('click', async () => {
+  const rutaAfectada = parseInt(rutaAfectadaSelect.value, 10);
+  const rutaAux = parseInt(rutaAuxiliarSelect.value, 10);
+  const info = infoTextarea.value || '';
+  if (isNaN(rutaAfectada) || isNaN(rutaAux)) {
+    alert('Selecciona las rutas');
+    return;
+  }
+  await actualizarEstadoRuta(rutaAfectada, false);
+  await actualizarEstadoRuta(rutaAux, true);
+  try {
+    const resp = await fetch('http://127.0.0.1:8000/api/notificaciones/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Token ${token}`
+      },
+      body: JSON.stringify({
+        ruta_afectada: rutaAfectada,
+        ruta_auxiliar: rutaAux,
+        paradas_afectadas: paradasAfectadasIds,
+        informacion: info
+      })
+    });
+    if (!resp.ok) throw new Error(await resp.text());
+    alert('Anuncio enviado');
+    paradasAfectadasIds = [];
+    listaParadas.innerHTML = '';
+    infoTextarea.value = '';
+    toggleAnuncioForm();
+  } catch (err) {
+    console.error('Error enviando anuncio', err);
+    alert('No se pudo enviar');
   }
 });
 

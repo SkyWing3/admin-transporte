@@ -12,12 +12,14 @@ from django.utils.dateparse import parse_datetime
 from .models import (
     Ruta, Parada, Coordenada,
     ParadaRuta, Horario, Dia,
-    DiaHorario, RutaHorario
+    DiaHorario, RutaHorario,
+    Notificacion
 )
 from .serializers import (
     RutaSerializer, ParadaSerializer, CoordenadaSerializer,
     ParadaRutaSerializer, HorarioSerializer, DiaSerializer,
-    DiaHorarioSerializer, RutaHorarioSerializer
+    DiaHorarioSerializer, RutaHorarioSerializer,
+    NotificacionSerializer
 )
 
 class RutaViewSet(viewsets.ModelViewSet):
@@ -135,6 +137,12 @@ class RutaHorarioViewSet(viewsets.ModelViewSet):
             qs = qs.filter(updated_at__gt=dt)
         serializer = self.get_serializer(qs, many=True)
         return Response(serializer.data)
+
+
+class NotificacionViewSet(viewsets.ModelViewSet):
+    queryset = Notificacion.objects.all()
+    serializer_class = NotificacionSerializer
+    permission_classes = [IsAuthenticated]
 
 class LoginAPIView(APIView):
     # Permitimos que cualquiera (incluso no autenticado) haga POST aquí

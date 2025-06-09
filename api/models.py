@@ -108,3 +108,24 @@ Ruta.horarios = models.ManyToManyField(
     through_fields=('rutas_id_ruta_puma', 'horario_id_horario'),
     related_name='rutas'
 )
+
+
+class Notificacion(TimeStampedModel):
+    ruta_afectada = models.ForeignKey(
+        Ruta,
+        on_delete=models.CASCADE,
+        related_name='notificaciones_afectada'
+    )
+    ruta_auxiliar = models.ForeignKey(
+        Ruta,
+        on_delete=models.CASCADE,
+        related_name='notificaciones_auxiliar'
+    )
+    paradas_afectadas = models.ManyToManyField(
+        Parada,
+        related_name='notificaciones'
+    )
+    informacion = models.TextField()
+
+    def __str__(self):
+        return f"Afecta {self.ruta_afectada_id} usa {self.ruta_auxiliar_id}"

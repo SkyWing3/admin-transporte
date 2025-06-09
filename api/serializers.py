@@ -2,7 +2,8 @@ from rest_framework import serializers
 from .models import (
     Ruta, Parada, Coordenada,
     ParadaRuta, Horario, Dia,
-    DiaHorario, RutaHorario
+    DiaHorario, RutaHorario,
+    Notificacion
 )
 
 class CoordenadaSerializer(serializers.ModelSerializer):
@@ -46,3 +47,9 @@ class RutaHorarioSerializer(serializers.ModelSerializer):
     class Meta:
         model = RutaHorario
         fields = ['rutas_id_ruta_puma', 'horario_id_horario']
+
+
+class NotificacionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notificacion
+        fields = '__all__'
